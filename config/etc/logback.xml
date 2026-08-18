@@ -1,0 +1,24 @@
+<configuration debug="true">
+
+        <contextName>${sumridge.metaproject}/${sumridge.project}/${sumridge.release}
+        </contextName>
+
+        <appender name="FileAppender" class="ch.qos.logback.core.FileAppender">
+                <file>${rootDir}/logs/${appid}.log </file>
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                        <pattern>[%-5p] %d{MM/dd/yyyy HH:mm:ss} %m%n</pattern>
+                </layout>
+        </appender>
+
+        <appender name="ConsoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+                <layout class="ch.qos.logback.classic.PatternLayout">
+                        <pattern>[%-5p] %d{MM/dd/yyyy HH:mm:ss} %m%n</pattern>
+                </layout>
+        </appender>
+	
+        <root>
+                <level value="info" />
+                <appender-ref ref="ConsoleAppender" />
+                <appender-ref ref="FileAppender" />
+        </root>
+</configuration>

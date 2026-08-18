@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ant:project name="smrd-pl-app" default="run"
+    xmlns:sumridge="antlib:com.sumridge.antbuild"
+    xmlns:ac="antlib:net.sf.antcontrib"
+    xmlns:ivy="antlib:org.apache.ivy.ant"
+    xmlns:ant="antlib:org.apache.tools.ant">
+
+    <sumridge:launcher />
+
+    <ant:property file="${sumridge.system.app.properties}" />
+    <ant:property name="sysprop.app.properties" value="${sumridge.system.app.properties}" />
+
+    <ant:property name="sysprop.rootDir" value="${rootDir}" />
+    <ant:property name="sysprop.mq.provider" value="${mq.provider}" />
+    <ant:property name="sysprop.smrd.db.interface" value="${smrd.db.interface}" />
+    <ant:property name="sysprop.smrd.dbtype" value="${smrd.dbtype}" />
+    
+    <ant:propertyset id="context.properties">
+         <ant:propertyref prefix="sysprop" />
+         <ant:mapper type="glob" from="sysprop.*" to="*" />
+    </ant:propertyset>
+
+
+    <ant:target name="run">
+    	<run metaproject="sumridge" project="smrd-pl-app" release="1.0+"
+            classname="com.sumridge.pl.main.MainEngine"
+            jvm="${sumridge.system.jdk18.java.jvm}" 
+            output="${rootDir}/logs/smrd-pl-app-spawn.txt"
+            spawn="true" >
+             <settings>
+            	<ant:syspropertyset>
+               		<ant:propertyset refid="context.properties" />
+               </ant:syspropertyset>
+
+		<ant:sysproperty key="logback.configurationFile" value="logback.xml" />
+                
+                <classpath>
+                	<pathelement location="../etc" />
+                </classpath>
+
+		<ant:arg value="smrd-pl.xml" />
+
+              	<ant:jvmarg value="-Dappid=smrd-pl.${smrd.run.mode}" />
+                <ant:jvmarg value="-Dsmrd.run.mode=${smrd.run.mode}" />
+                <ant:jvmarg value="-server"/>
+		<ant:jvmarg value="-Xmx512M" />
+		<ant:jvmarg value="-XX:PermSize=20M" />
+		<ant:jvmarg value="-XX:MaxPermSize=50M" />
+		<ant:jvmarg value="-XX:+UseParNewGC" />
+		<ant:jvmarg value="-XX:+UseConcMarkSweepGC" />
+		<ant:jvmarg value="-XX:CMSInitiatingOccupancyFraction=20" />
+		<ant:jvmarg value="-XX:GCTimeRatio=19" />
+		<ant:jvmarg value="-XX:NewRatio=2" />
+		<ant:jvmarg value="-XX:MaxTenuringThreshold=0" />
+		<ant:jvmarg value="-XX:+UseCMSCompactAtFullCollection" />
+         	</settings>
+       	</run>
+	</ant:target>
+</ant:project>

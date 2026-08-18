@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans
+	xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xsi:schemaLocation="
+    http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+	http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+	http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd 
+	" 
+	default-autowire="no">
+
+	<!--============ COMPONENT SCAN  ==============-->
+	<bean class="org.springframework.orm.jpa.support.PersistenceAnnotationBeanPostProcessor" />
+	<tx:annotation-driven />
+	<context:annotation-config />
+	<context:component-scan base-package="com.sumridge.pl" />
+	
+	<!--============ PROPERTIES ============== -->
+	<util:properties id="appProps" location="file:${app.properties}" />
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
+		p:ignoreUnresolvablePlaceholders="true">
+		<property name="propertiesArray">
+			<list>
+				<ref bean="appProps" />
+			</list>
+		</property>
+	</bean>
+	<!--============ JMS ============== -->
+   	<bean id="mqJndiTemplate" class="org.springframework.jndi.JndiTemplate">
+		<constructor-arg index="0">
+			<props>
+				<prop key="java.naming.factory.initial">${mq.factory}</prop>
+                                <prop key="java.naming.provider.url">${mq.provider}</prop>
+			</props>
+		</constructor-arg>
+	</bean>
+
+	<!-- Topic -->
+	<bean id="jmsTopicConnFactory" class="org.springframework.jndi.JndiObjectFactoryBean"
+		p:jndiTemplate-ref="mqJndiTemplate" p:jndiName="FID.TCF" />
+		
+	<!-- Spring Message Listener Container -->
+	<bean id="listenerContainerSetup"
+		class="org.springframework.jms.listener.SimpleMessageListenerContainer"
+		lazy-init="true" p:connectionFactory-ref="jmsTopicConnFactory"
+		p:destinationName="setup/#" p:pubSubDomain="true" p:autoStartup="false"
+		p:sessionAcknowledgeMode="1">
+		<property name="messageListener">
+			<bean
+				class="org.springframework.jms.listener.adapter.MessageListenerAdapter"
+				p:delegate-ref="setupMessageDelegate" p:messageConverter-ref="setupMessageConverter" />
+		</property>
+	</bean>
+	<bean id="listenerContainerPrice"
+		class="org.springframework.jms.listener.SimpleMessageListenerContainer"
+		lazy-init="true" p:connectionFactory-ref="jmsTopicConnFactory"
+		p:destinationName="price/#" p:pubSubDomain="true" p:autoStartup="false"
+		p:sessionAcknowledgeMode="1">
+		<property name="messageListener">
+			<bean
+				class="org.springframework.jms.listener.adapter.MessageListenerAdapter"
+				p:delegate-ref="priceMessageDelegate" p:messageConverter-ref="priceMessageConverter" />
+		</property>
+	</bean>
+	<bean id="listenerContainerPosition"
+		class="org.springframework.jms.listener.SimpleMessageListenerContainer"
+		lazy-init="true" p:connectionFactory-ref="jmsTopicConnFactory"
+		p:destinationName="position/#" p:pubSubDomain="true" p:autoStartup="false"
+		p:sessionAcknowledgeMode="1">
+		<property name="messageListener">
+			<bean
+				class="org.springframework.jms.listener.adapter.MessageListenerAdapter"
+				p:delegate-ref="positionMessageDelegate" p:messageConverter-ref="positionMessageConverter" />
+		</property>
+	</bean>
+	<bean id="listenerContainerTrade"
+		class="org.springframework.jms.listener.SimpleMessageListenerContainer"
+		lazy-init="true" p:connectionFactory-ref="jmsTopicConnFactory"
+		p:destinationName="trade/#" p:pubSubDomain="true"
+		p:autoStartup="false" p:sessionAcknowledgeMode="1">
+		<property name="messageListener">
+			<bean
+				class="org.springframework.jms.listener.adapter.MessageListenerAdapter"
+				p:delegate-ref="tradeMessageDelegate" p:messageConverter-ref="tradeMessageConverter" />
+		</property>
+	</bean>
+	<bean id="listenerContainerMsd"
+		class="org.springframework.jms.listener.SimpleMessageListenerContainer"
+		lazy-init="true" p:connectionFactory-ref="jmsTopicConnFactory"
+		p:destinationName="msd/update" p:pubSubDomain="true" p:autoStartup="false"
+		p:sessionAcknowledgeMode="1">
+		<property name="messageListener">
+			<bean
+				class="org.springframework.jms.listener.adapter.MessageListenerAdapter"
+				p:delegate-ref="msdMessageDelegate" p:messageConverter-ref="msdMessageConverter" />
+		</property>
+	</bean>
+
+	<bean id="signalBuffer" class="java.util.concurrent.LinkedBlockingQueue"><!--
+	  <constructor-arg type="int" value="1000"/>
+    --></bean>
+
+	<bean id="pubBuffer" class="com.sumridge.mq.client.concurrent.BlockingMessageBuffer"	
+	     init-method="init" destroy-method="destroy" p:id="pubBuffer" p:maxBufferSize="5000">		
+	</bean>
+	<bean id="java.util.concurrent.TimeUnit.MILLISECONDS" class="org.springframework.beans.factory.config.FieldRetrievingFactoryBean" />
+	<bean id="pubConsumer" class="com.sumridge.mq.client.concurrent.MessageConsumer"	
+	    p:id="pubConsumer" p:period="1000" p:periodTimeUnit-ref="java.util.concurrent.TimeUnit.MILLISECONDS">		
+	</bean>
+	<bean id="riskPublisher" class="com.sumridge.mq.client.publisher.ThrottledPublisher"	
+	     init-method="connect" destroy-method="destroy" p:id="riskPublisher" p:topic="risk">		
+		<property name="factoryName" value="FID.CF" />
+		<property name="messageBuffer" ref="pubBuffer"/>
+		<property name="messageConsumer" ref="pubConsumer"/>
+	</bean>
+	<!--============ infinispan ============== -->
+	<bean id="cacheManager" class="org.infinispan.manager.DefaultCacheManager">
+		<constructor-arg value="infinispan.xml" />
+	</bean>
+	<!--============ QUARTZ SCHEDULER============== -->
+	<bean id="doCalcTotal" class="org.springframework.scheduling.quartz.CronTriggerBean" p:name="doCalcTotal"
+		p:cronExpression="0 */3 * * * ?">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean" p:name="calcTotal"
+				p:targetObject-ref="plResultService" p:targetMethod="calcTotalResult" p:concurrent="false" />
+		</property>
+	</bean>
+	<bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean" p:autoStartup="true"
+		p:waitForJobsToCompleteOnShutdown="false">
+
+		<property name="quartzProperties">
+			<props>
+				<prop key="org.quartz.threadPool.class">org.quartz.simpl.SimpleThreadPool</prop>
+				<prop key="org.quartz.threadPool.threadCount">1</prop>
+			</props>
+		</property>
+		<property name="triggers">
+			<list>
+				<ref bean="doCalcTotal" />
+			</list>
+		</property>
+	</bean>
+
+	<!--============ DB ============== -->
+	<bean id="databaseType" class="java.lang.String">
+    		<constructor-arg type="java.lang.String" value="${smrd.dbtype}" />
+	</bean>
+	<bean id="dataSourceFactory" class="com.sumridge.util.db.DataSourceFactory" />
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"  factory-bean="dataSourceFactory"
+		factory-method="createInstance">
+		<constructor-arg>
+			<value>smrd</value>
+		</constructor-arg>
+	</bean>
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource">
+			<ref bean="dataSource" />
+		</property>
+	</bean>
+</beans>

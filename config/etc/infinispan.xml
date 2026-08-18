@@ -1,0 +1,70 @@
+<infinispan xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="urn:infinispan:config:5.1 http://www.infinispan.org/schemas/infinispan-config-5.1.xsd"
+	xmlns="urn:infinispan:config:5.1">
+
+   <global>
+      <transport>
+         <properties>
+            <property name="configurationFile" value="jgroups-tcp.xml" />
+         </properties>
+      </transport>
+   </global>
+
+   <default>
+      <clustering mode="local">
+         <hash numOwners="1"/>
+      </clustering>
+   </default>
+
+   <namedCache name="position">
+     <indexing enabled="true" indexLocalOnly="true">
+         <properties>
+            <property name="hibernate.search.default.directory_provider" value="ram" />
+         </properties>
+      </indexing>
+   </namedCache>
+
+   <namedCache name="currency">
+   </namedCache>
+         
+   <namedCache name="account">
+   </namedCache>
+
+   <namedCache name="price">
+   </namedCache>
+
+   <namedCache name="result">
+     <!--
+     <indexing enabled="true" indexLocalOnly="true">
+         <properties>
+            <property name="hibernate.search.default.directory_provider" value="ram" />
+         </properties>
+      </indexing>
+	  <loaders>
+	     <loader class="org.infinispan.loaders.jdbc.stringbased.JdbcStringBasedCacheStore">
+	      <properties>
+	          <property name="stringsTableNamePrefix" value="ISPN_STRING_TABLE"/>
+		      <property name="idColumnName" value="ID_COLUMN"/>
+		      <property name="dataColumnName" value="DATA_COLUMN"/>
+		      <property name="timestampColumnName" value="TIMESTAMP_COLUMN"/>
+		      <property name="timestampColumnType" value="BIGINT"/>
+		      <property name="connectionFactoryClass"
+		                value="org.infinispan.loaders.jdbc.connectionfactory.ManagedConnectionFactory"/>
+		      <property name="datasourceJndiLocation" value="java:comp/env/jdbc/smrd"/>
+		      <property name="idColumnType" value="VARCHAR(255)"/>
+		      <property name="dataColumnType" value="BINARY"/>
+		      <property name="dropTableOnExit" value="true"/>
+		      <property name="createTableOnStart" value="true"/>
+	      </properties>
+	      <async enabled="true" flushLockTimeout="15000" threadPoolSize="5"/>
+	   </loader>
+	  </loaders>-->
+   </namedCache>
+
+   <namedCache name="property">
+   </namedCache>
+
+   <namedCache name="common">
+   </namedCache>
+
+</infinispan>
